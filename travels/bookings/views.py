@@ -3,13 +3,14 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.http import Http404
 from .serializers import BusSerializer,Seatsinfoserializer,UserResgister_serilizer,Bookingserializer
-from .models import  Buses,Seats,Bookings,User
+from .models import  Buses,Seats,Bookings
+from django.contrib.auth.models import User
 #no decoratos it is ws
 from rest_framework.views import APIView   
 from rest_framework import status,generics    
 #authentication 
 from django.contrib.auth import authenticate
-from rest_framework.permissions import IsAuthenticated,AllowAny
+from rest_framework.permissions import AllowAny
 from rest_framework.authtoken.models import Token
 
 
@@ -75,14 +76,18 @@ class Registerview(APIView):
     
 class Loginview(APIView):
     permission_classes = [AllowAny]
-    def post(self,request):
+    def post(self, request):
         username = request.data.get('username')
-        password = request.data.password('password')
-        user = User.objects.get(username=username,password=password)
+        password = request.data.get('password')
+
+        if not username or not password:
+            return Response({"error": "Username and password required"}, status=status.HTTP_400_BAD_REQUEST)
+        user = authenticate(username=username, password=password)
         if user:
-            token,created = Token.objects.get_or_create(user=user)
-            return Response({"token  " :token.key},status=status.HTTP_200_OK)
-        return Response({"error": "invalid"},status=status.HTTP_401_UNAUTHORIZED)
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({"token": token.key}, status=status.HTTP_200_OK)
+
+        return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 #class based view 
@@ -99,13 +104,14 @@ class BusView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    #to retrive the single object
     
 class Bookingview(APIView):
     # permission_classes = [IsAuthenticated]
-    permission_classes = [AllowAny]
+    # permission_classes = [AllowAny]
     def post(self, request):
         seat_id = request.data.get('seat')
+        if not seat_id:
+            return Response({"error": "Seat ID is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             seat = Seats.objects.get(id=seat_id)
@@ -119,16 +125,14 @@ class Bookingview(APIView):
             booking = Bookings.objects.create(
                 user=request.user,
                 bus=seat.bus,
-                seat=seat.seat_no
+                seat=seat
             )
 
             serializer = Bookingserializer(booking)
-
-            return Response({"message": "Seat is booked", "booking": serializer.data}, status=status.HTTP_202_ACCEPTED)
+            return Response({"message": "Seat is booked", "booking": serializer.data}, status=status.HTTP_201_CREATED)
 
         except Seats.DoesNotExist:
             return Response({"error": "Seat not found"}, status=status.HTTP_400_BAD_REQUEST)
-    # def post(self,request):
     #     seat_id = request.data.get('seat')
     #     try :
     #         seat = Seats.objects.get(seat_id = Seats.seat_no)
@@ -139,7 +143,7 @@ class Bookingview(APIView):
     #         bookings = Bookings.objects.create(
     #             user = request.User,
     #             bus = Seats.Buses,
-    #             seat = Seats.seat_no
+    #             seat = Seats
     #         )
     #         serializer = Bookingserializer(bookings)
 

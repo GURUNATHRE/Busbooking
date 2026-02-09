@@ -36,10 +36,10 @@ class Seatsinfoserializer(serializers.ModelSerializer):
         fields = ['bus','seat_no','seat_book']
 
 class Bookingserializer(serializers.ModelSerializer):
-    bus = serializers.StringRelatedField()
-    seat = Seatsinfoserializer
-    user = serializers.StringRelatedField()
+    bus = serializers.StringRelatedField(read_only=True)
+    seat = Seatsinfoserializer(read_only=True) 
+    user = serializers.StringRelatedField(read_only=True)
+
     class Meta:
         model = Bookings
         fields = "__all__"
-        read_only = ['bus','user','seat']

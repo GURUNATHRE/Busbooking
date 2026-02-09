@@ -31,7 +31,7 @@ class Buses(models.Model):
 # Seats Model
 class Seats(models.Model):
     bus = models.ForeignKey(Buses, on_delete=models.CASCADE, related_name="buses_seat")
-    seat_no = models.CharField(max_length=10)
+    seat_no = models.CharField(max_length=40)
     seat_book = models.BooleanField(default=False)
     
     class Meta:
